@@ -1,0 +1,114 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dbgpt
+  namespace: dbgpt
+  labels:
+    app: dbgpt
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dbgpt
+  strategy:
+    type: Recreate    # PVC is ReadWriteOnce — one pod at a time
+  template:
+    metadata:
+      labels:
+        app: dbgpt
+    spec:
+      containers:
+        - name: dbgpt
+          image: eosphorosai/dbgpt:latest
+          imagePullPolicy: Always
+
+          command:
+            - "dbgpt"
+            - "start"
+            - "webserver"
+            - "--config"
+            - "configs/dbgpt-proxy-azure.toml"
+
+          ports:
+            - name: http
+              containerPort: 5670
+              protocol: TCP
+
+          env:
+            - name: DBGPT_LANG
+              value: "en"
+            - name: LANGUAGE
+              value: "en"
+
+            # ---- Azure AI Foundry credentials (from secret) ----
+            - name: AZURE_OPENAI_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: dbgpt-secrets
+                  key: azure-openai-endpoint
+            - name: AZURE_OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: dbgpt-secrets
+                  key: azure-openai-api-key
+            - name: AZURE_OPENAI_API_VERSION
+              valueFrom:
+                secretKeyRef:
+                  name: dbgpt-secrets
+                  key: azure-api-version
+
+            # ---- dbgpt encrypt key (from secret) ----
+            - name: DBGPT_ENCRYPT_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: dbgpt-secrets
+                  key: encrypt-key
+
+            # ---- MySQL (ACTION REQUIRED: set host to your MySQL server) ----
+            - name: MYSQL_HOST
+              value: "REPLACE_WITH_YOUR_MYSQL_HOST"
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: dbgpt-secrets
+                  key: mysql-password
+
+          volumeMounts:
+            - name: dbgpt-data
+              mountPath: /app/pilot/data
+            - name: dbgpt-config
+              mountPath: /app/configs/dbgpt-proxy-azure.toml
+              subPath: dbgpt-proxy-azure.toml
+              readOnly: true
+
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "2"
+              memory: "4Gi"
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 5670
+            initialDelaySeconds: 45
+            periodSeconds: 15
+            failureThreshold: 5
+
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 5670
+            initialDelaySeconds: 90
+            periodSeconds: 30
+            failureThreshold: 3
+
+      volumes:
+        - name: dbgpt-data
+          persistentVolumeClaim:
+            claimName: dbgpt-data-pvc
+        - name: dbgpt-config
+          configMap:
+            name: dbgpt-config
