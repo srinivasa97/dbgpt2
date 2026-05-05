@@ -3,6 +3,7 @@
 # Base: official eosphorosai/dbgpt image
 # LLM Backend: Azure AI Foundry (Azure OpenAI)
 # ============================================================
+RUN apt-get update && apt-get install -y gettext-base && rm -rf /var/lib/apt/lists/*
 
 FROM eosphorosai/dbgpt:latest
 
