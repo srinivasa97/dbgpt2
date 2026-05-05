@@ -1,0 +1,74 @@
+# ============================================================
+# dbgpt configuration — Azure AI Foundry backend
+#
+# IMPORTANT: This file uses ${VAR} placeholders that are
+# substituted at container startup by docker-entrypoint.sh.
+# Do NOT replace placeholders with real values here.
+# Pass secrets via environment variables / K8s Secrets.
+# ============================================================
+
+[system]
+language = "en"
+api_keys = []
+encrypt_key = "${DBGPT_ENCRYPT_KEY}"
+
+[service.web]
+host = "0.0.0.0"
+port = 5670
+
+# -------------------------------------------------------
+# DATABASE — choose ONE option below:
+#
+# Option A: SQLite (simple, no external DB required)
+#   [service.web.database]
+#   type = "sqlite"
+#   path = "pilot/meta_data/dbgpt.db"
+#
+# Option B: MySQL (production) — uses env vars from secret
+# -------------------------------------------------------
+[service.web.database]
+type     = "mysql"
+host     = "${MYSQL_HOST}"
+port     = 3306
+user     = "dbgpt"
+password = "${MYSQL_PASSWORD}"
+database = "dbgpt"
+
+[rag.storage.vector]
+type         = "chroma"
+persist_path = "pilot/data"
+
+# -------------------------------------------------------
+# Azure AI Foundry — LLM Models
+# Deployment names must match what is deployed in your
+# Azure AI Foundry project (check the Deployments page).
+# -------------------------------------------------------
+[models]
+
+[[models.llms]]
+name        = "gpt-4o"
+provider    = "proxy/openai"
+api_type    = "azure"
+api_base    = "${AZURE_OPENAI_ENDPOINT}"
+api_key     = "${AZURE_OPENAI_API_KEY}"
+api_version = "${AZURE_OPENAI_API_VERSION}"
+
+# Add more LLM deployments as needed, e.g.:
+# [[models.llms]]
+# name        = "gpt-4"
+# provider    = "proxy/openai"
+# api_type    = "azure"
+# api_base    = "${AZURE_OPENAI_ENDPOINT}"
+# api_key     = "${AZURE_OPENAI_API_KEY}"
+# api_version = "${AZURE_OPENAI_API_VERSION}"
+
+# -------------------------------------------------------
+# Azure AI Foundry — Embedding Model
+# -------------------------------------------------------
+[[models.embeddings]]
+name        = "text-embedding-3-large"
+provider    = "proxy/openai"
+api_type    = "azure"
+api_base    = "${AZURE_OPENAI_ENDPOINT}"
+api_key     = "${AZURE_OPENAI_API_KEY}"
+api_version = "${AZURE_OPENAI_API_VERSION}"
