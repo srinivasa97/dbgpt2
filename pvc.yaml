@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dbgpt-data-pvc
+  namespace: dbgpt
+  labels:
+    app: dbgpt
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: managed-csi        # Azure Standard HDD — auto-provisioned by AKS
+  resources:
+    requests:
+      storage: 5Gi                     # ChromaDB vector store + pilot metadata
+                                       # Expandable online: kubectl edit pvc dbgpt-data-pvc -n dbgpt
